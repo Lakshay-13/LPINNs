@@ -56,10 +56,10 @@ def main() -> None:
     left = 110
     top = 108
 
-    draw.text((left, top), "Localized PINNs", font=title_font, fill=(242, 248, 255, 255))
+    draw.text((left, top), "Localisation", font=title_font, fill=(242, 248, 255, 255))
     draw.multiline_text(
         (left, top + 105),
-        "Localized receptive fields for oscillatory and PDE systems,\nwith extensions to high-dimensional physics solvers",
+        "Localised receptive fields for oscillatory and PDE systems,\nwith extensions to high-dimensional physics solvers",
         font=subtitle_font,
         fill=(184, 231, 238, 255),
         spacing=8,
