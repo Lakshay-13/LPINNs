@@ -411,7 +411,7 @@ Use these rules when deciding what to carry forward:
 
 At the end of the campaign, the repo should contain:
 
-1. reproducible scripts for the full sweep
+1. one reproducible runner for the full sweep
 2. clean output directory structure
 3. aggregate metrics for every 10-seed experiment group
 4. individual and combined plots
@@ -424,14 +424,9 @@ Use this prompt as both the research brief and the execution brief.
 
 Before writing new code, inspect and reuse the useful parts of:
 
-1. `/Users/lakshaychawla/Downloads/NAS/Mtech/MTP/localisation/experiments/validate_localisation_matrix.py`
-2. `/Users/lakshaychawla/Downloads/NAS/Mtech/MTP/localisation/experiments/recreate_major_experiments.py`
-3. `/Users/lakshaychawla/Downloads/NAS/Mtech/MTP/localisation/run_all_experiments.sh`
-4. `/Users/lakshaychawla/Downloads/NAS/Mtech/MTP/localisation/run_all_experiments_detached.sh`
-5. `/Users/lakshaychawla/Downloads/NAS/Mtech/MTP/localisation/run_gaussian_validation.sh`
-6. `/Users/lakshaychawla/Downloads/NAS/Mtech/MTP/localisation/run_gaussian_validation_detached.sh`
+1. `/Users/lakshaychawla/Downloads/NAS/Mtech/MTP/localisation/experiments/run_experiments.py`
 
-Do not duplicate existing patterns blindly. Reuse only what actually helps the new campaign.
+Do not duplicate existing patterns blindly. Keep the experiment definitions and execution logic in that one runner.
 
 ## Runner Requirements
 

@@ -6,9 +6,7 @@ Last verified: `2026-09-17`
 
 - Public project name: **LPINNs**
 - Public repository: <https://github.com/Lakshay-13/LPINNs>
-- Latest manuscript source pulled from Overleaf commit: `b3407d9a3eb5c652ffde0c62c4e4430d99a6e006`
-- Submission manuscript: [`claude_revision/main.tex`](claude_revision/main.tex)
-- Compiled manuscript: [`claude_revision/main.pdf`](claude_revision/main.pdf)
+- Paper source: maintained separately from this public code repository
 - Compact result record: [`results/primary_results.md`](results/primary_results.md)
 - Completed local campaign used for verification: `campaign_runs/project/run_1`
 
@@ -35,10 +33,8 @@ The manuscript reports three detailed ten-seed paired comparisons:
 
 ## Reproducible entry points
 
-- `run_gaussian_validation.sh` runs the Gaussian validation matrix.
-- `run_all_experiments.sh` runs the complete recreation harness.
-- `experiments/validate_localisation_matrix.py` validates Gaussian comparisons.
-- `experiments/recreate_major_experiments.py` runs the broader experiment grid.
+- `reproduce.sh` is the single repeatable experiment entry point.
+- `experiments/run_experiments.py` contains the complete HO, Heat, and 4D campaign definitions and execution logic.
 
 Default generated outputs go under ignored `repro_runs/`. The large completed campaign tree under `campaign_runs/` stays local; the public release contains the compact, checked result summary instead of raw logs and checkpoints.
 

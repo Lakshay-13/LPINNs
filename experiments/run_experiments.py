@@ -264,7 +264,7 @@ EXPERIMENT_CONFIGS: dict[str, ExperimentConfig] = {
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run the localisation campaign across HO, Heat, and 4D.")
+    parser = argparse.ArgumentParser(description="Run the LPINNs experiment campaign across HO, Heat, and 4D.")
     parser.add_argument("--output-root", type=Path, default=None)
     parser.add_argument(
         "--experiments",

@@ -8,14 +8,12 @@ LPINNs: First-Layer Gated Localization for Physics-Informed Neural Networks.
 
 LPINNs multiply the first hidden representation of an otherwise standard dense PINN by input-dependent localization functions. This gives first-layer units local receptive fields while keeping one smooth global network, with no domain partition, interface loss, or extra subnetwork.
 
-## Paper and headline results
+## Headline results
 
-- [Submission manuscript PDF](claude_revision/main.pdf)
-- [LaTeX source](claude_revision/main.tex)
 - [Primary results and provenance notes](results/primary_results.md)
 - [Reproducibility and experiment status](status.md)
 
-The completed campaign contains 24,960 configurations and 249,600 process-completed seed records across harmonic-oscillator, heat-equation, and 4D fourth-order settings. The three detailed, ten-seed comparisons in the manuscript are:
+The completed campaign contains 24,960 configurations and 249,600 process-completed seed records across harmonic-oscillator, heat-equation, and 4D fourth-order settings. The three detailed, ten-seed comparisons in the release record are:
 
 | Problem and setting | Localized configuration | Baseline solution RMSE | LPINNs solution RMSE | LPINNs wins |
 | --- | --- | ---: | ---: | ---: |
@@ -58,12 +56,12 @@ HO/                         Harmonic-oscillator experiments
 Heat Equation/              Heat-equation experiments
 4D/                         Four-dimensional experiments
 experiments/                Reproducible runners and validation tools
-claude_revision/            Submission manuscript source, figures, and PDF
 results/                    Compact public result summaries
 assets/poster.png           LPINNs repository banner
+reproduce.sh                Single repeatable experiment entry point
 ```
 
-The notebook archive contains exploratory history. The reproducible command-line runners and the manuscript’s primary evidence are the recommended entry points for the public release.
+The notebook archive contains exploratory history. The single reproducible command-line runner and compact result record are the recommended entry points for the public release.
 
 ## Reproduce
 
@@ -74,14 +72,14 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
-Run a bounded Gaussian validation or the complete experiment recreation with the supplied scripts. Outputs are written to an ignored `repro_runs/` directory by default:
+Run the repeatable LPINNs campaign with the single public entry point. Outputs are written to an ignored `repro_runs/` directory by default:
 
 ```bash
-./run_gaussian_validation.sh --help
-./run_all_experiments.sh --help
+./reproduce.sh --help
+./reproduce.sh --smoke-test
 ```
 
-The full campaign used CPU-only multiprocessing and ten paired seeds. The public results summary records the exact primary settings, aggregate values, and interpretation limits. Raw logs, checkpoints, and generated campaign galleries are intentionally not part of the Git release because they are very large.
+The full campaign used CPU-only multiprocessing and ten paired seeds. All experiment definitions and execution logic live in `experiments/run_experiments.py`; the shell script only selects an output directory and invokes it. The public results summary records the exact primary settings, aggregate values, and interpretation limits. Raw logs, checkpoints, and generated campaign galleries are intentionally not part of the Git release because they are very large.
 
 ## Limitations
 
@@ -89,4 +87,4 @@ The evidence covers three equations and a controlled set of domain lengths, budg
 
 ## Citation and release status
 
-This repository is the public LPINNs release accompanying the submission manuscript. The paper source is intentionally kept in submission form; update the author block and venue metadata only when the submission workflow requires it.
+This repository is the public LPINNs code and results release. The paper source is maintained separately from this repository.

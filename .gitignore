@@ -6,13 +6,5 @@ __pycache__/
 repro_runs/
 campaign_runs/
 
-# LaTeX build products; keep the checked manuscript PDF and source.
-claude_revision/*.aux
-claude_revision/*.bbl
-claude_revision/*.blg
-claude_revision/*.fdb_latexmk
-claude_revision/*.fls
-claude_revision/*.log
-claude_revision/*.out
-claude_revision/*.synctex.gz
-claude_revision/render*/
+# Keep the secondary paper-template checkout out of the public tree.
+iclr2027/
