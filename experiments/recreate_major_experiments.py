@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import csv
 import importlib.util
 import json
@@ -31,12 +32,13 @@ class ExperimentSpec:
     seed: int
     kwargs: dict[str, Any]
     note: str = ""
+    allow_failure: bool = False
 
 
-FUNCTION_EXPERIMENTS = [
+ARCHITECTURE_EXPERIMENTS = [
     ExperimentSpec(
-        key="ho_gaussian_kernel",
-        group="functions",
+        key="ho_gaussian_single_final",
+        group="architectures",
         kind="ho",
         module_path="HO/gaussian/Single Layer/harmonic_oscillator.py",
         class_name="HO",
@@ -64,7 +66,170 @@ FUNCTION_EXPERIMENTS = [
         note="HO Gaussian single-layer final-run style config",
     ),
     ExperimentSpec(
-        key="ho_boxcar_kernel",
+        key="ho_gaussian_multilayer_deep",
+        group="architectures",
+        kind="ho",
+        module_path="HO/gaussian/Multiple Layers/harmonic_oscillator.py",
+        class_name="HO",
+        epochs=5000,
+        seed=3,
+        kwargs=dict(
+            t_0=0.0,
+            u_0=0.0,
+            u_0_prime=1.0,
+            t_min=0.0,
+            t_max=4 * math.pi,
+            train_batch_size=256,
+            valid_batch_size=64,
+            input_neurons=[16, 16, 16, 16, 16, 16, 16, 16, 16, 16],
+            lr=1e-2,
+            activation="sine",
+            sigma=True,
+            initial_sigma=0.06,
+            localization=True,
+            scaling=True,
+        ),
+        note="HO Gaussian multi-layer deep final_run notebook config",
+    ),
+    ExperimentSpec(
+        key="ho_gaussian_multilayer_wide",
+        group="architectures",
+        kind="ho",
+        module_path="HO/gaussian/Multiple Layers/harmonic_oscillator.py",
+        class_name="HO",
+        epochs=5000,
+        seed=3,
+        kwargs=dict(
+            t_0=0.0,
+            u_0=0.0,
+            u_0_prime=1.0,
+            t_min=0.0,
+            t_max=4 * math.pi,
+            train_batch_size=256,
+            valid_batch_size=64,
+            input_neurons=[64, 64],
+            lr=1e-2,
+            activation="sine",
+            sigma=True,
+            initial_sigma=0.06,
+            localization=True,
+            scaling=True,
+        ),
+        note="HO Gaussian multi-layer wide final_run notebook config",
+    ),
+    ExperimentSpec(
+        key="ho_activated_256",
+        group="architectures",
+        kind="ho",
+        module_path="HO/activated localization/harmonic_oscillator.py",
+        class_name="HO",
+        epochs=5000,
+        seed=3,
+        kwargs=dict(
+            t_0=0.0,
+            u_0=0.0,
+            u_0_prime=1.0,
+            t_min=0.0,
+            t_max=4 * math.pi,
+            train_batch_size=256,
+            valid_batch_size=64,
+            input_neurons=[256],
+            lr=1e-2,
+            activation="sine",
+            sigma=False,
+            initial_sigma=0.06,
+            localization=True,
+            scaling=True,
+        ),
+        note="HO activated-localisation final notebook width 256",
+    ),
+    ExperimentSpec(
+        key="ho_activated_512",
+        group="architectures",
+        kind="ho",
+        module_path="HO/activated localization/harmonic_oscillator.py",
+        class_name="HO",
+        epochs=5000,
+        seed=3,
+        kwargs=dict(
+            t_0=0.0,
+            u_0=0.0,
+            u_0_prime=1.0,
+            t_min=0.0,
+            t_max=4 * math.pi,
+            train_batch_size=256,
+            valid_batch_size=64,
+            input_neurons=[512],
+            lr=1e-2,
+            activation="sine",
+            sigma=False,
+            initial_sigma=0.06,
+            localization=True,
+            scaling=True,
+        ),
+        note="HO activated-localisation final notebook width 512",
+    ),
+    ExperimentSpec(
+        key="ho_activated_1024",
+        group="architectures",
+        kind="ho",
+        module_path="HO/activated localization/harmonic_oscillator.py",
+        class_name="HO",
+        epochs=5000,
+        seed=3,
+        kwargs=dict(
+            t_0=0.0,
+            u_0=0.0,
+            u_0_prime=1.0,
+            t_min=0.0,
+            t_max=4 * math.pi,
+            train_batch_size=256,
+            valid_batch_size=64,
+            input_neurons=[1024],
+            lr=1e-2,
+            activation="sine",
+            sigma=False,
+            initial_sigma=0.06,
+            localization=True,
+            scaling=True,
+        ),
+        note="HO activated-localisation final notebook width 1024",
+    ),
+]
+
+FUNCTION_EXPERIMENTS = [
+    ExperimentSpec(
+        key="ho_boxcar_baseline",
+        group="functions",
+        kind="ho",
+        module_path="HO/boxcar/harmonic_oscillator.py",
+        class_name="HO",
+        epochs=5000,
+        seed=3,
+        kwargs=dict(
+            t_0=0.0,
+            u_0=0.0,
+            u_0_prime=1.0,
+            t_min=0.0,
+            t_max=4 * math.pi,
+            train_batch_size=256,
+            valid_batch_size=64,
+            mu=False,
+            sigma=False,
+            input_neurons=[32, 32],
+            lr=1e-2,
+            activation="sine",
+            initial_sigma=0.06,
+            sigma_min=None,
+            sigma_max=None,
+            localization=False,
+            scaling=True,
+            amplitude=1.0,
+        ),
+        note="HO boxcar longer-run baseline without localisation",
+    ),
+    ExperimentSpec(
+        key="ho_boxcar_localised",
         group="functions",
         kind="ho",
         module_path="HO/boxcar/harmonic_oscillator.py",
@@ -91,10 +256,38 @@ FUNCTION_EXPERIMENTS = [
             scaling=True,
             amplitude=1.0,
         ),
-        note="HO boxcar localization from longer-run notebook",
+        note="HO boxcar longer-run localised branch",
     ),
     ExperimentSpec(
-        key="ho_ricker_kernel",
+        key="ho_ricker_8_128",
+        group="functions",
+        kind="ho",
+        module_path="HO/ricker wavelet/harmonic_oscillator.py",
+        class_name="HO",
+        epochs=50000,
+        seed=3,
+        kwargs=dict(
+            t_0=0.0,
+            u_0=0.0,
+            u_0_prime=1.0,
+            t_min=0.0,
+            t_max=4 * math.pi,
+            train_batch_size=256,
+            valid_batch_size=64,
+            sigma=True,
+            input_neurons=[8, 128],
+            lr=1e-2,
+            activation="sine",
+            initial_sigma=0.3,
+            sigma_min=None,
+            sigma_max=None,
+            localization=True,
+            scaling=True,
+        ),
+        note="HO ricker-wavelet initial_run notebook, [8, 128], 50k total epochs",
+    ),
+    ExperimentSpec(
+        key="ho_ricker_16_256",
         group="functions",
         kind="ho",
         module_path="HO/ricker wavelet/harmonic_oscillator.py",
@@ -119,10 +312,68 @@ FUNCTION_EXPERIMENTS = [
             localization=True,
             scaling=True,
         ),
-        note="HO ricker-wavelet localization using the later compact config",
+        note="HO ricker-wavelet initial_run notebook, [16, 256], 5k total epochs",
     ),
     ExperimentSpec(
-        key="ho_super_gaussian_kernel",
+        key="ho_super_gaussian_1024x2",
+        group="functions",
+        kind="ho",
+        module_path="HO/super gaussian/singe layer/harmonic_oscillator.py",
+        class_name="HO",
+        epochs=50000,
+        seed=3,
+        kwargs=dict(
+            t_0=0.0,
+            u_0=0.0,
+            u_0_prime=1.0,
+            t_min=0.0,
+            t_max=4 * math.pi,
+            train_batch_size=256,
+            valid_batch_size=64,
+            mu=False,
+            sigma=False,
+            input_neurons=[1024, 1024],
+            lr=1e-2,
+            activation="sine",
+            initial_sigma=0.1,
+            sigma_min=None,
+            sigma_max=None,
+            localization=True,
+            scaling=True,
+        ),
+        note="HO super-Gaussian longer-run notebook, [1024, 1024]",
+    ),
+    ExperimentSpec(
+        key="ho_super_gaussian_1024x3",
+        group="functions",
+        kind="ho",
+        module_path="HO/super gaussian/singe layer/harmonic_oscillator.py",
+        class_name="HO",
+        epochs=50000,
+        seed=3,
+        kwargs=dict(
+            t_0=0.0,
+            u_0=0.0,
+            u_0_prime=1.0,
+            t_min=0.0,
+            t_max=4 * math.pi,
+            train_batch_size=256,
+            valid_batch_size=64,
+            mu=False,
+            sigma=False,
+            input_neurons=[1024, 1024, 1024],
+            lr=1e-2,
+            activation="sine",
+            initial_sigma=0.1,
+            sigma_min=None,
+            sigma_max=None,
+            localization=True,
+            scaling=True,
+        ),
+        note="HO super-Gaussian longer-run notebook, [1024, 1024, 1024]",
+    ),
+    ExperimentSpec(
+        key="ho_super_gaussian_16x3",
         group="functions",
         kind="ho",
         module_path="HO/super gaussian/singe layer/harmonic_oscillator.py",
@@ -154,36 +405,7 @@ FUNCTION_EXPERIMENTS = [
 
 EQUATION_EXPERIMENTS = [
     ExperimentSpec(
-        key="eq_ho_gaussian",
-        group="equations",
-        kind="ho",
-        module_path="HO/gaussian/Single Layer/harmonic_oscillator.py",
-        class_name="HO",
-        epochs=5000,
-        seed=3,
-        kwargs=dict(
-            t_0=0.0,
-            u_0=0.0,
-            u_0_prime=1.0,
-            t_min=0.0,
-            t_max=4 * math.pi,
-            train_batch_size=256,
-            valid_batch_size=64,
-            mu=False,
-            sigma=False,
-            input_neurons=[16, 256],
-            lr=1e-2,
-            activation="sine",
-            initial_sigma=0.1,
-            sigma_min=None,
-            sigma_max=None,
-            localization=True,
-            scaling=True,
-        ),
-        note="Reference HO experiment",
-    ),
-    ExperimentSpec(
-        key="eq_heat_gaussian_128",
+        key="eq_heat_gaussian_128_localised",
         group="equations",
         kind="he",
         module_path="Heat Equation/Gaussian/heat_equation.py",
@@ -198,7 +420,81 @@ EQUATION_EXPERIMENTS = [
             initial_sigma=0.1,
             localization=True,
         ),
-        note="Reference heat-equation Gaussian experiment",
+        note="Heat-equation Gaussian final notebook, [128, 128], localised",
+    ),
+    ExperimentSpec(
+        key="eq_heat_gaussian_128_baseline",
+        group="equations",
+        kind="he",
+        module_path="Heat Equation/Gaussian/heat_equation.py",
+        class_name="HE",
+        epochs=300000,
+        seed=3,
+        kwargs=dict(
+            input_neurons=[128, 128],
+            lr=1e-2,
+            activation="tanh",
+            sigma=True,
+            initial_sigma=0.1,
+            localization=False,
+        ),
+        note="Heat-equation Gaussian final notebook, [128, 128], no localisation",
+    ),
+    ExperimentSpec(
+        key="eq_heat_gaussian_512_localised",
+        group="equations",
+        kind="he",
+        module_path="Heat Equation/Gaussian/heat_equation.py",
+        class_name="HE",
+        epochs=300000,
+        seed=3,
+        kwargs=dict(
+            input_neurons=[512, 512],
+            lr=1e-2,
+            activation="tanh",
+            sigma=True,
+            initial_sigma=0.1,
+            localization=True,
+        ),
+        note="Heat-equation Gaussian final notebook, [512, 512], localised",
+    ),
+    ExperimentSpec(
+        key="eq_heat_gaussian_512_baseline",
+        group="equations",
+        kind="he",
+        module_path="Heat Equation/Gaussian/heat_equation.py",
+        class_name="HE",
+        epochs=300000,
+        seed=3,
+        kwargs=dict(
+            input_neurons=[512, 512],
+            lr=1e-2,
+            activation="tanh",
+            sigma=True,
+            initial_sigma=0.1,
+            localization=False,
+        ),
+        note="Heat-equation Gaussian final notebook, [512, 512], no localisation",
+    ),
+    ExperimentSpec(
+        key="eq_heat_activated_trial",
+        group="equations",
+        kind="he",
+        module_path="Heat Equation/Activated localization/heat_equation.py",
+        class_name="HE",
+        epochs=3000,
+        seed=3,
+        kwargs=dict(
+            input_neurons=[16, 32],
+            lr=1e-2,
+            activation="tanh",
+            mu=True,
+            sigma=True,
+            initial_sigma=0.1,
+            localization=True,
+        ),
+        note="Activated heat-equation saved trial; known broken shape-mismatch branch",
+        allow_failure=True,
     ),
     ExperimentSpec(
         key="eq_4d_run3",
@@ -215,13 +511,15 @@ EQUATION_EXPERIMENTS = [
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Recreate major localization experiments.")
-    parser.add_argument("--group", choices=["functions", "equations", "all"], default="all")
+    parser = argparse.ArgumentParser(description="Recreate localisation notebook experiments.")
+    parser.add_argument("--group", choices=["architectures", "functions", "equations", "all"], default="all")
     parser.add_argument("--output-root", type=Path, default=None)
     parser.add_argument("--epoch-scale", type=float, default=1.0)
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto")
     parser.add_argument("--experiments", nargs="*", default=None, help="Optional subset of experiment keys.")
     parser.add_argument("--include-4d", action="store_true")
+    parser.add_argument("--include-blocked", action="store_true")
+    parser.add_argument("--max-workers", type=int, default=1)
     parser.add_argument("--zip-at-end", action="store_true")
     parser.add_argument("--list", action="store_true")
     parser.add_argument("--fail-fast", action="store_true")
@@ -608,6 +906,7 @@ def run_experiment(spec: ExperimentSpec, output_root: Path, device: str, epoch_s
         "seed": spec.seed,
         "device": device,
         "note": spec.note,
+        "allow_failure": spec.allow_failure,
         "status": "failed",
         "log_path": str(log_path.relative_to(output_root)),
         "artifact_dir": str(exp_dir.relative_to(output_root)),
@@ -661,12 +960,19 @@ def run_experiment(spec: ExperimentSpec, output_root: Path, device: str, epoch_s
     return summary
 
 
-def choose_experiments(group: str, selected: list[str] | None, include_4d: bool):
+def choose_experiments(group: str, selected: list[str] | None, include_4d: bool, include_blocked: bool):
     experiments = []
+    if group in {"architectures", "all"}:
+        experiments.extend(ARCHITECTURE_EXPERIMENTS)
     if group in {"functions", "all"}:
         experiments.extend(FUNCTION_EXPERIMENTS)
     if group in {"equations", "all"}:
-        experiments.extend([exp for exp in EQUATION_EXPERIMENTS if include_4d or exp.key != "eq_4d_run3"])
+        for exp in EQUATION_EXPERIMENTS:
+            if exp.key == "eq_4d_run3" and not include_4d:
+                continue
+            if exp.allow_failure and not include_blocked:
+                continue
+            experiments.append(exp)
 
     if selected:
         selected_set = set(selected)
@@ -674,8 +980,17 @@ def choose_experiments(group: str, selected: list[str] | None, include_4d: bool)
     return experiments
 
 
+def summarize_results(results: list[dict[str, Any]]):
+    return {
+        "total": len(results),
+        "ok": sum(1 for row in results if row.get("status") == "ok"),
+        "failures": sum(1 for row in results if row.get("status") != "ok" and not row.get("allow_failure", False)),
+        "allowed_failures": sum(1 for row in results if row.get("status") != "ok" and row.get("allow_failure", False)),
+    }
+
+
 def write_summary(outputs_root: Path, results: list[dict[str, Any]]):
-    write_json(outputs_root / "summary.json", {"results": results})
+    write_json(outputs_root / "summary.json", {"counts": summarize_results(results), "results": results})
     csv_path = outputs_root / "summary.csv"
     keys = sorted({key for row in results for key in row.keys()})
     with csv_path.open("w", newline="") as fp:
@@ -693,12 +1008,77 @@ def make_zip(output_root: Path):
     return zip_path
 
 
+def execute_experiments(
+    experiments: list[ExperimentSpec],
+    output_root: Path,
+    device: str,
+    epoch_scale: float,
+    max_workers: int,
+    fail_fast: bool,
+):
+    if max_workers <= 1:
+        results = []
+        failures = 0
+        for spec in experiments:
+            result = run_experiment(spec, output_root, device, epoch_scale)
+            results.append(result)
+            if result["status"] != "ok" and not result.get("allow_failure", False):
+                failures += 1
+                if fail_fast:
+                    break
+        return results, failures
+
+    results_by_index: dict[int, dict[str, Any]] = {}
+    failures = 0
+    stop_requested = False
+
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        future_to_index = {
+            executor.submit(run_experiment, spec, output_root, device, epoch_scale): idx
+            for idx, spec in enumerate(experiments)
+        }
+        for future in as_completed(future_to_index):
+            idx = future_to_index[future]
+            spec = experiments[idx]
+            try:
+                result = future.result()
+            except Exception as exc:
+                result = {
+                    "key": spec.key,
+                    "group": spec.group,
+                    "kind": spec.kind,
+                    "epochs_requested": spec.epochs,
+                    "epochs_run": scaled_epochs(spec, epoch_scale),
+                    "seed": spec.seed,
+                    "device": device,
+                    "note": spec.note,
+                    "allow_failure": spec.allow_failure,
+                    "status": "failed",
+                    "error": repr(exc),
+                    "artifact_dir": str((output_root / "artifacts" / spec.key).relative_to(output_root)),
+                    "log_path": str((output_root / "logs" / f"{spec.key}.log").relative_to(output_root)),
+                }
+
+            results_by_index[idx] = result
+            if result["status"] != "ok" and not result.get("allow_failure", False):
+                failures += 1
+                if fail_fast and not stop_requested:
+                    stop_requested = True
+                    for pending in future_to_index:
+                        if pending is not future:
+                            pending.cancel()
+
+    ordered_results = [results_by_index[idx] for idx in sorted(results_by_index)]
+    return ordered_results, failures
+
+
 def main():
     args = parse_args()
-    experiments = choose_experiments(args.group, args.experiments, args.include_4d)
+    experiments = choose_experiments(args.group, args.experiments, args.include_4d, args.include_blocked)
     if args.list:
         for spec in experiments:
-            print(f"{spec.group:10s} {spec.key:24s} epochs={spec.epochs} kind={spec.kind}")
+            flags = " allow-failure" if spec.allow_failure else ""
+            print(f"{spec.group:14s} {spec.key:32s} epochs={spec.epochs:<7d} kind={spec.kind}{flags}")
         return 0
 
     if not experiments:
@@ -707,32 +1087,37 @@ def main():
 
     device = select_device(args.device)
     output_root = ensure_output_root(args.output_root)
-    results = []
-    failures = 0
+    max_workers = max(1, args.max_workers)
 
     manifest = {
         "device": device,
         "epoch_scale": args.epoch_scale,
+        "max_workers": max_workers,
+        "include_4d": args.include_4d,
+        "include_blocked": args.include_blocked,
         "experiments": [asdict(spec) for spec in experiments],
     }
     write_json(output_root / "manifest.json", manifest)
 
-    for spec in experiments:
-        result = run_experiment(spec, output_root, device, args.epoch_scale)
-        results.append(result)
-        if result["status"] != "ok":
-            failures += 1
-            if args.fail_fast:
-                break
-
+    results, failures = execute_experiments(
+        experiments=experiments,
+        output_root=output_root,
+        device=device,
+        epoch_scale=args.epoch_scale,
+        max_workers=max_workers,
+        fail_fast=args.fail_fast,
+    )
     write_summary(output_root, results)
+    counts = summarize_results(results)
 
     if args.zip_at_end:
         zip_path = make_zip(output_root)
         print(f"archive={zip_path}")
 
     print(f"output_root={output_root}")
-    print(f"failures={failures}")
+    print(f"ok={counts['ok']}")
+    print(f"failures={counts['failures']}")
+    print(f"allowed_failures={counts['allowed_failures']}")
     return 1 if failures else 0
 
 
